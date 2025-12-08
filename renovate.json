@@ -1,16 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "github>aquaproj/aqua-renovate-config#2.9.0"
+  ],
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
   "lockFileMaintenance": {
-    "enabled": true
+    "enabled": true,
+    "automerge": true
   },
-  "reviewers": ["koyashiro"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
       "matchCurrentVersion": "!/^0/",
-      "automerge": true,
-      "automergeType": "squash"
+      "automerge": true
     }
-  ]
+  ],
+  "reviewers": ["koyashiro"]
 }

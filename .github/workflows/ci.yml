@@ -8,12 +8,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: package.json
           cache: npm
@@ -29,12 +29,12 @@ jobs:
           fi
 
   lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: package.json
           cache: npm
@@ -44,12 +44,12 @@ jobs:
         run: npm run lint
 
   format:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: package.json
           cache: npm
@@ -59,12 +59,12 @@ jobs:
         run: npm run format:check
 
   test-node:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: package.json
           cache: npm
@@ -74,49 +74,47 @@ jobs:
         run: npm test
 
   test-action:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Run export-secrets
         uses: ./
         with:
-          secrets: '{"KEY_A":"VALUE_A","KEY_B":"VALUE_B","KEY_C":"VALUE_C"}'
+          secrets: |
+            {
+              "FOO": "foo",
+              "TF_VAR_FOO": "tf-var-foo",
+              "TF_TOKEN_EXAMPLE_COM": "tf-token-example-com"
+            }
+          downcase-tf-var: true
+          downcase-tf-token: true
       - name: Check environment variables
         run: |
-          EXPECTED_VALUE_KEY_A='VALUE_A'
-          EXPECTED_VALUE_KEY_B='VALUE_B'
-          EXPECTED_VALUE_KEY_C='VALUE_C'
+          FAILED=''
 
-          FAILED='false'
+          assert_env() {
+            local KEY="$1"
+            local EXPECTED="$2"
+            local ACTUAL="${!KEY}"
 
-          if [ "$KEY_A" = "$EXPECTED_VALUE_KEY_A" ]; then
-            echo 'PASSED: VALUE_A'
-          else
-            echo 'FAILED: VALUE_A' 1>&2
-            echo "  expected: $EXPECTED_VALUE_KEY_A" 1>&2
-            echo "  actual: $KEY_A" 1>&2
-            FAILED='true'
-          fi
+            if [[ "$EXPECTED" = "$ACTUAL" ]]; then
+              echo "PASSED: $KEY"
+            else
+              echo "FAILED: $KEY" 1>&2
+              echo "  expected: $EXPECTED" 1>&2
+              echo "  actual: $ACTUAL" 1>&2
+              FAILED='true'
+            fi
+          }
 
-          if [ "$KEY_B" = "$EXPECTED_VALUE_KEY_B" ]; then
-            echo 'PASSED: VALUE_B'
-          else
-            echo 'FAILED: VALUE_B' 1>&2
-            echo "  expected: $EXPECTED_VALUE_KEY_B" 1>&2
-            echo "  actual: $KEY_B" 1>&2
-            FAILED='true'
-          fi
+          assert_env 'FOO' 'foo'
+          assert_env 'TF_VAR_FOO' ''
+          assert_env 'TF_VAR_foo' 'tf-var-foo'
+          assert_env 'TF_TOKEN_EXAMPLE_COM' ''
+          assert_env 'TF_TOKEN_example_com' 'tf-token-example-com'
 
-          if [ "$KEY_C" = "$EXPECTED_VALUE_KEY_C" ]; then
-            echo 'PASSED: VALUE_C'
-          else
-            echo 'FAILED: VALUE_C' 1>&2
-            echo "  expected: $EXPECTED_VALUE_KEY_C" 1>&2
-            echo "  actual: $KEY_C" 1>&2
-            FAILED='true'
-          fi
-
-          if [ "$FAILED" = 'true' ]; then
+          if [[ -n "$FAILED" ]]; then
+            echo "Test failed" 1>&2
             exit 1
           fi
